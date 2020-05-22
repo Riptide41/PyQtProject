@@ -2,6 +2,7 @@ import sys, cv2
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QHBoxLayout
 from PyQt5 import QtGui, QtWidgets, QtCore
 import ProjectUi
+import ImageProcess
 
 
 class UiMainWindow(QMainWindow):
@@ -21,7 +22,11 @@ class UiMainWindow(QMainWindow):
 
     def button_open_camera_click(self):
         if not self.timer_camera.isActive():
-            flag = self.cap.open(self.CAM_NUM)
+            # flag = self.cap.open(self.CAM_NUM)
+
+            # ***************测试使用**********************
+            flag = self.cap.open("C:/Users/62329/Desktop/Object.avi")
+
             if flag == False:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
                                                     buttons=QtWidgets.QMessageBox.Ok,
@@ -39,6 +44,12 @@ class UiMainWindow(QMainWindow):
 
     def show_camera(self):
         flag, self.image = self.cap.read()
+
+        # ***************测试使用**********************
+        if self.image is None:
+            self.cap.open("C:/Users/62329/Desktop/Object.avi")
+            flag, self.image = self.cap.read()
+
         # face = self.face_detect.align(self.image)
         # if face:
         #     pass
