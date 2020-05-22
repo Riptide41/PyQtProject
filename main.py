@@ -10,17 +10,22 @@ class UiMainWindow(QMainWindow):
         super(UiMainWindow, self).__init__(parent)
         self.ui = ProjectUi.Ui_MainWindow()
         self.ui.setupUi(self)
-        self.timer_camera = QtCore.QTimer()    # 计时器用来固定时长取帧
+        self.timer_camera = QtCore.QTimer()  # 计时器用来固定时长取帧
+        self.timer_getpic = QtCore.QTimer()  # 计时器用来固定时长取识别的图片
         self.cap = cv2.VideoCapture()
         self.CAM_NUM = 0
         self.slot_init()
+        self.flag_show_detected = 0
+        self.detected = 0    # 是否识别完毕
 
     def slot_init(self):
-        self.ui.button_camera.clicked.connect(self.button_open_camera_click)
+        self.ui.button_camera.clicked.connect(self.button_display_camera_click)
         self.timer_camera.timeout.connect(self.show_camera)
+        self.timer_getpic.timeout.connect(self.process_pic)
+        self.ui.button_show_detected.clicked.connect(self.show_detected)
         self.ui.button_exit.clicked.connect(self.close)
 
-    def button_open_camera_click(self):
+    def button_display_camera_click(self):
         if not self.timer_camera.isActive():
             # flag = self.cap.open(self.CAM_NUM)
 
@@ -29,17 +34,19 @@ class UiMainWindow(QMainWindow):
 
             if flag == False:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
-                                                    buttons=QtWidgets.QMessageBox.Ok,
-                                                    defaultButton=QtWidgets.QMessageBox.Ok)
+                                              buttons=QtWidgets.QMessageBox.Ok,
+                                              defaultButton=QtWidgets.QMessageBox.Ok)
             else:
-                #self.show_camera()
-                self.timer_camera.start(30)    # 每30ms取一次图像
+                # self.show_camera()
+                self.timer_camera.start(30)  # 每30ms取一次图像
+                self.timer_getpic.start(2000)
                 self.ui.button_camera.setText(u'关闭相机')
         else:
             self.timer_camera.stop()
             self.cap.release()
             self.ui.camera.clear()
             self.ui.button_camera.setText(u'打开相机')
+            self.ui.button_show_detected.setEnabled(False)
             self.ui.camera.setText("未开启")
 
     def show_camera(self):
@@ -49,21 +56,32 @@ class UiMainWindow(QMainWindow):
         if self.image is None:
             self.cap.open("C:/Users/62329/Desktop/Object.avi")
             flag, self.image = self.cap.read()
+        # 识别完后允许点击显示识别后按钮
+        if self.detected:
+            self.ui.button_show_detected.setEnabled(True)  # 允许点击识别按钮
+        else:
+            self.ui.button_show_detected.setEnabled(False)
 
-        # face = self.face_detect.align(self.image)
-        # if face:
-        #     pass
-        show = cv2.resize(self.image, (640, 480))
+        if self.flag_show_detected:
+            show_image = self.detected_pic
+        else:show_image = self.image
+        show = cv2.resize(show_image, (640, 480))
         show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
-        # print(show.shape[1], show.shape[0])
-        # show.shape[1] = 640, show.shape[0] = 480
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
         self.ui.camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
-        # self.x += 1
-        # self.label_move.move(self.x,100)
 
-        # if self.x ==320:
-        #     self.label_show_camera.raise_()
+    def show_detected(self):
+        if self.flag_show_detected:
+            self.flag_show_detected = 0
+            self.ui.button_show_detected.setText("已识别图像")
+        else:
+            self.flag_show_detected = 1
+            self.ui.button_show_detected.setText("未识别图像")
+
+    def process_pic(self):
+        self.detected, self.detected_pic = ImageProcess.detect(self.image)
+        # self.detected_pic = self.image
+        # self.detected = 1
 
     def closeEvent(self, event):
         ok = QtWidgets.QPushButton()
