@@ -1,5 +1,5 @@
 import sys, cv2
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5 import QtGui, QtWidgets, QtCore
 import ProjectUi
 import ImageProcess
