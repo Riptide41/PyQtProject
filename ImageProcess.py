@@ -2,53 +2,16 @@ import cv2
 import numpy as np
 import math
 
-def canny(image):
+def detect(image):
     blurred = cv2.GaussianBlur(image, (3, 3), 0)  # 高斯模糊，降噪
     blurred1 = cv2.pyrMeanShiftFiltering(image, 1, 60)
     blurred2 = cv2.bilateralFilter(image, 9, 75, 75)  # 中值滤波
     # blurred = image
     cv2.imshow("blurred", blurred)
     gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)  # 转为灰度图片
-    gray1 = cv2.cvtColor(blurred1, cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(blurred2, cv2.COLOR_BGR2GRAY)
 
-    # x = cv2.Sobel(gray, cv2.CV_16S, 1, 0)  # CV_16S表示16位有符号整形
-    # y = cv2.Sobel(gray, cv2.CV_16S, 0, 1)
-    # absX = cv2.convertScaleAbs(x)  # 把越界的数值转化回255uint8
-    # bsY = cv2.convertScaleAbs(y)
     autosobel = cv2.Canny(gray, 150, 200, 3)
-    manualsobel = cv2.Canny(gray1, 150, 200)
-    autosobel2 = cv2.Canny(gray2, 150, 200)
-    _, thresh = cv2.threshold(gray2, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    cv2.imshow("Threshold", thresh)
-    cv2.imshow("bilaFIl", autosobel2)
-    # contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # cv2.drawContours(image, contours, -1, (0, 0, 255), 1)
-    # print(autosobel)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    morgra = cv2.morphologyEx(gray1, cv2.MORPH_GRADIENT, kernel)
-    thresh2 = cv2.adaptiveThreshold(morgra, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 2)
-    cv2.imshow("MORGRA", thresh2)
-
-    # cv2.imshow("drawContours", thresh)
-    cv2.imshow("AutoSobel", autosobel)
-    cv2.imshow("ManualSobel", manualsobel)
-    # cv2.imshow("Edge2 output", img_opening)
-
-    # 直线检测，不好用
-    '''
-    minLineLength = 1
-    maxLineGap = 1
-    lines = cv2.HoughLinesP(autosobel, 1, np.pi / 180, 2, minLineLength, maxLineGap)
-    print(lines.shape)
-
-    linepic = image.copy()
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        cv2.line(linepic, (x1, y1), (x2, y2), (0, 255, 0), 1, lineType=cv2.LINE_AA)
-    cv2.imshow("linepic", linepic)
-    '''
     # 轮廓检测，返回轮廓list和轮廓关系list
     contours, hierarchy = cv2.findContours(autosobel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     # realcont存储筛选结果
@@ -65,7 +28,7 @@ def canny(image):
     white_bg.fill(255)
     wbg_cont = cv2.drawContours(white_bg, realcont, -1, (0, 255, 0), 3)
     cv2.imshow("wbg_cont", wbg_cont)
-
+    return True, wbg_cont
     contours_cps = []    # 轮廓的中心点
     contoursnamed = image.copy()
     for i in range(len(realcont)):
@@ -157,41 +120,7 @@ def canny(image):
 
     img2 = cv2.drawContours(image.copy(), contours, -1, (0, 0, 255), 1)
     cv2.imshow("img2", img2)
-
-
-def watershed(image):
-    # 均值漂移,中和色彩分布相近的颜色，平滑色彩细节，侵蚀掉面积较小的颜色区域
-    blurred1 = cv2.pyrMeanShiftFiltering(image, 1, 60)
-    gray1 = cv2.cvtColor(blurred1, cv2.COLOR_BGR2GRAY)
-    ret, thresh = cv2.threshold(gray1, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # Otus二值化，自计算优阈值
-    cv2.imshow("thresh", thresh)
-    # 开操作，去除白噪点
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    thr_open = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-    cv2.imshow("afteropen", thr_open)
-    # 确认后景区域
-    sure_bg = cv2.morphologyEx(thr_open, cv2.MORPH_DILATE, kernel, iterations=1)
-    # 距离变换，确认前景区域
-    dist_transform = cv2.distanceTransform(thr_open, cv2.DIST_L2, 0)
-    _, dist_output = cv2.threshold(dist_transform, 0.3 * dist_transform.max(), 255, cv2.THRESH_BINARY)
-    cv2.imshow("sure_bg", sure_bg)
-    cv2.imshow("dist_output", dist_output)
-    sure_fg = np.uint8(dist_output)
-    # 确认未知区域
-    unknow = cv2.subtract(sure_bg, sure_fg)
-
-    _, markers = cv2.connectedComponents(sure_fg)  # 标记前后景区域
-    # 上述函数吧背景标记成0，分水岭函数需要背景是1,未知改为0
-    markers += 1
-    markers[unknow == 255] = 0
-    # 分水岭算法
-    markers = cv2.watershed(image, markers)
-    dst1 = np.zeros(markers.shape)
-    dst1[markers == -1] = 255
-    cv2.imshow("dst0", dst1)  # 显示结果
-    image[markers == -1] = [0, 0, 255]
-    cv2.imshow("dst", image)  # 在原图显示结果
-
+    return img2
 
 def findcontour(image):
     # 均值漂移,中和色彩分布相近的颜色，平滑色彩细节，侵蚀掉面积较小的颜色区域
@@ -216,33 +145,10 @@ def findcontour(image):
     pass
 
 
-def test(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-
-    threshhold = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 5, 2)
-    cv2.imshow("two", threshhold)
-    thr_blurred = cv2.GaussianBlur(threshhold, (5, 5), 0)
-
-    _, threshhold1 = cv2.threshold(thr_blurred, 200, 255, cv2.THRESH_BINARY)
-    # img_opening_blurred = threshhold1
-    # '''
-    cv2.imshow("threshhold1", threshhold1)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))  # 取3*3正方体为核
-    img_close = cv2.morphologyEx(threshhold1, cv2.MORPH_CLOSE, kernel)  # 调用形态学操作API
-    contours, hierarchy = cv2.findContours(img_close, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(image, contours, -1, (0, 0, 255), 1)
-
-    cv2.imshow("drawContours", image)
-    cv2.imshow("img_close", img_close)
-
 if __name__ == "__main__":
     src = cv2.imread("C:/Users/62329/Desktop/object.jpg")
     src1 = cv2.imread("C:/Users/62329/Desktop/test2.jpg")
     cv2.imshow("origin", src)
-    canny(src)
-    #watershed(src1)
-    # cv2.imshow("absY", absY)
-    # cv2.imshow("output", absX)
+    detect(src)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
