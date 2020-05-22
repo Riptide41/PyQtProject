@@ -28,7 +28,9 @@ def detect(image):
     white_bg.fill(255)
     wbg_cont = cv2.drawContours(white_bg, realcont, -1, (0, 255, 0), 3)
     cv2.imshow("wbg_cont", wbg_cont)
-    return True, wbg_cont
+
+    # return True, wbg_cont
+
     contours_cps = []    # 轮廓的中心点
     contoursnamed = image.copy()
     for i in range(len(realcont)):
@@ -44,7 +46,7 @@ def detect(image):
 
     # 把检测到的轮廓分为3类
     classified = image.copy()
-    for i in (1, 11, 15):
+    for i in [1, 8, 11]:
          for j in range(len(realcont)):
              if cv2.matchShapes(realcont[i], realcont[j], 1, 0.0) < 0.035:
                  cv2.circle(classified, contours_cps[j], 4, (255, 0, 255), -1)
@@ -120,7 +122,7 @@ def detect(image):
 
     img2 = cv2.drawContours(image.copy(), contours, -1, (0, 0, 255), 1)
     cv2.imshow("img2", img2)
-    return img2
+    return True, img2
 
 def findcontour(image):
     # 均值漂移,中和色彩分布相近的颜色，平滑色彩细节，侵蚀掉面积较小的颜色区域
