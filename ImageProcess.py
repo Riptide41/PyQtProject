@@ -8,12 +8,12 @@ class detect(object):
         self.image = image
         blurred = cv2.GaussianBlur(image, (3, 3), 0)  # 高斯模糊，降噪
         gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)  # 转为灰度图片
-        autosobel = cv2.Canny(gray, 150, 200, 3)    # sobel变化，边缘检测
+        autosobel = cv2.Canny(gray, 150, 200, 3)  # sobel变化，边缘检测
         contours, _ = cv2.findContours(autosobel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         detect_cont = self.filter_contours(contours)
         self.classified_cont = self.classify_cont(detect_cont)
 
-    def filter_contours(self, con):    # 过滤得到疑似塑件的轮廓
+    def filter_contours(self, con):  # 过滤得到疑似塑件的轮廓
         filtered = []
         square = [cv2.contourArea(x) for x in con]
         for i in range(len(square)):
@@ -21,26 +21,25 @@ class detect(object):
                 filtered.append(con[i])
         return filtered
 
-    def classify_cont(self, cont):    # 分类识别出的轮廓
+    def classify_cont(self, cont):  # 分类识别出的轮廓
         model_cont = np.load("./contdata.npy", allow_pickle=True)
-        clsy_rlt = []     # 存放分类结果，格式[[轮廓，类型，区别度]...]
+        clsy_rlt = []  # 存放分类结果，格式[[轮廓，类型，区别度]...]
         for i, k in enumerate(model_cont):
             for j in cont:
                 m = cv2.matchShapes(k, j, 1, 0.0)
                 if m < 0.035:
-                    clsy_rlt.append([j, k, m])
+                    clsy_rlt.append([j, i, m])
         clsy_rlt.sort(key=lambda x: x[2])
-        return clsy_rlt    # 使用区分度排序
+        return clsy_rlt  # 使用区分度排序
 
     def get_classified_pic(self):
         pic = self.image.copy()
         for i in self.classified_cont:
             cv2.drawContours(pic, [i[0]], -1, (0, 255, 0), 5)
-        return True, pic    # 返回识别成功，识别后的图像
+        return True, pic  # 返回识别成功，识别后的图像
 
-
-    def get_four_cont(self):
-        return self.classified_cont[:4]    # 返回排序后的前四个轮廓
+    def get_three_cont(self):
+        return self.classified_cont[:3]  # 返回排序后的前四个轮廓
 
     def get_pic_info(self, cont):
         pics = []
@@ -59,15 +58,14 @@ class detect(object):
             if dst_h > dst_w:
                 dst_w, dst_h = dst_h, dst_w
                 angle += 90
-            M = cv2.getRotationMatrix2D(center_p, angle, 1.0)    # 获取旋转参数
+            M = cv2.getRotationMatrix2D(center_p, angle, 1.0)  # 获取旋转参数
 
             rotated = cv2.warpAffine(self.image, M, (img.shape[:2]))
             crop = rotated[center_p[1] - dst_h - 2:center_p[1] + dst_h + 2,
                    center_p[0] - dst_w - 2:center_p[0] + dst_w + 2]
-            infos.append([center_p, angle, i[1], i[2]])
+            infos.append([center_p, angle, i[1], i[2]])    # [中心点坐标，倾斜角度，类型，区别度]
             pics.append(crop)
         return pics, infos
-
 
 
 # def detect(image):

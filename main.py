@@ -10,13 +10,17 @@ class UiMainWindow(QMainWindow):
         super(UiMainWindow, self).__init__(parent)
         self.ui = ProjectUi.Ui_MainWindow()
         self.ui.setupUi(self)
-        self.timer_camera = QtCore.QTimer()  # 计时器用来固定时长取帧
-        self.timer_getpic = QtCore.QTimer()  # 计时器用来固定时长取识别的图片
+        self.timer_camera = QtCore.QTimer()    # 计时器用来固定时长取帧
+        self.timer_getpic = QtCore.QTimer()    # 计时器用来固定时长取识别的图片
         self.cap = cv2.VideoCapture()
         self.CAM_NUM = 0
         self.slot_init()
         self.flag_show_detected = 0
         self.detected = 0    # 是否识别完毕
+        self.image = None    # 读取到的帧
+        self.detected_pic = None    # 识别后的图片
+        self.result_pics = None    # 识别到的每个单塑件图片list
+        self.result_infos = None    # 识别到的每个单塑件信息list [中心点坐标，倾斜角度，类型，区别度]
 
     def slot_init(self):
         self.ui.button_camera.clicked.connect(self.button_display_camera_click)
@@ -32,7 +36,7 @@ class UiMainWindow(QMainWindow):
             # ***************测试使用**********************
             flag = self.cap.open("C:/Users/62329/Desktop/Object.avi")
 
-            if flag == False:
+            if not flag:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
                                               buttons=QtWidgets.QMessageBox.Ok,
                                               defaultButton=QtWidgets.QMessageBox.Ok)
@@ -64,7 +68,22 @@ class UiMainWindow(QMainWindow):
 
         if self.flag_show_detected:
             show_image = self.detected_pic
-        else:show_image = self.image
+        else:
+            show_image = self.image
+        if self.detected:
+            three_pic_label = [self.ui.dict_1, self.ui.dict_2, self.ui.dict_3]     # 把三个label放进list便于遍历
+            three_info_label = [self.ui.dict_1_info, self.ui.dict_2_info, self.ui.dict_3_info]
+            for i in range(0, 3):
+                dict_pic = cv2.resize(self.result_pics[i], (204, 114))
+                cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
+                show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0], QtGui.QImage.Format_RGB888)
+                three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
+            for i in range(0, 3):
+                three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i][0][1]})\n"
+                                            f"angle:{self.result_infos[i][1]}\n"
+                                            f"shape type:{self.result_infos[i][2]}\n"
+                                            f"distinction:{self.result_infos[i][3]}")
+
         show = cv2.resize(show_image, (640, 480))
         show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
@@ -81,9 +100,8 @@ class UiMainWindow(QMainWindow):
     def process_pic(self):
         ip = ImageProcess.detect(self.image)
         self.detected, self.detected_pic = ip.get_classified_pic()
-
-
-        # self.detected_pic = self.image
+        cont = ip.get_three_cont()
+        self.result_pics, self.result_infos = ip.get_pic_info(cont)
         # self.detected = 1
 
     def closeEvent(self, event):
@@ -96,11 +114,9 @@ class UiMainWindow(QMainWindow):
         msg.addButton(cacel, QtWidgets.QMessageBox.RejectRole)
         ok.setText(u'确定')
         cacel.setText(u'取消')
-        # msg.setDetailedText('sdfsdff')
         if msg.exec_() == QtWidgets.QMessageBox.RejectRole:
             event.ignore()
         else:
-            #             self.socket_client.send_command(self.socket_client.current_user_command)
             if self.cap.isOpened():
                 self.cap.release()
             if self.timer_camera.isActive():
