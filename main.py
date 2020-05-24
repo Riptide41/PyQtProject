@@ -40,12 +40,12 @@ class UiMainWindow(QMainWindow):
                 # self.show_camera()
                 self.timer_camera.start(30)  # 每30ms取一次图像
                 self.timer_getpic.start(2000)
-                self.ui.button_camera.setText(u'关闭相机')
+                self.ui.button_camera.setText(u'关闭摄像头')
         else:
             self.timer_camera.stop()
             self.cap.release()
             self.ui.camera.clear()
-            self.ui.button_camera.setText(u'打开相机')
+            self.ui.button_camera.setText(u'打开摄像头')
             self.ui.button_show_detected.setEnabled(False)
             self.ui.camera.setText("未开启")
 
@@ -79,7 +79,10 @@ class UiMainWindow(QMainWindow):
             self.ui.button_show_detected.setText("未识别图像")
 
     def process_pic(self):
-        self.detected, self.detected_pic = ImageProcess.detect(self.image)
+        ip = ImageProcess.detect(self.image)
+        self.detected, self.detected_pic = ip.get_classified_pic()
+
+
         # self.detected_pic = self.image
         # self.detected = 1
 
