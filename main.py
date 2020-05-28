@@ -34,7 +34,7 @@ class UiMainWindow(QMainWindow):
             # flag = self.cap.open(self.CAM_NUM)
 
             # ***************测试使用**********************
-            flag = self.cap.open("C:/Users/62329/Desktop/Object.avi")
+            flag = self.cap.open("./Object.avi")
 
             if not flag:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
@@ -58,7 +58,7 @@ class UiMainWindow(QMainWindow):
 
         # ***************测试使用**********************
         if self.image is None:
-            self.cap.open("C:/Users/62329/Desktop/Object.avi")
+            self.cap.open("./Object.avi")
             flag, self.image = self.cap.read()
         # 识别完后允许点击显示识别后按钮
         if self.detected:
@@ -99,9 +99,9 @@ class UiMainWindow(QMainWindow):
 
     def process_pic(self):
         ip = ImageProcess.detect(self.image)
-        self.detected, self.detected_pic = ip.get_classified_pic()
         cont = ip.get_three_cont()
         self.result_pics, self.result_infos = ip.get_pic_info(cont)
+        self.detected, self.detected_pic = ip.get_classified_pic()
         # self.detected = 1
 
     def closeEvent(self, event):
