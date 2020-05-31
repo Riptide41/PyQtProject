@@ -32,24 +32,17 @@ class detect(object):
         clsy_rlt.sort(key=lambda x: x[2])
         return clsy_rlt  # 使用区分度排序
 
-    def classify_shape0(self, i):
-        # 缺陷检测 用来分别缺单角的图形
-
-        print("ssssss", defects_list)
-
-
-
     def get_classified_pic(self):
         pic = self.image.copy()
         for i, c in enumerate(self.classified_cont):
-            if i < 3:    # 前三个标绿，后面标红
+            if i < 3:  # 前三个标绿，后面标红
                 cv2.drawContours(pic, [c[0]], -1, (0, 255, 0), 5)
             else:
                 cv2.drawContours(pic, [c[0]], -1, (0, 0, 255), 5)
         return True, pic  # 返回识别成功，识别后的图像
 
     def get_three_cont(self):
-        return self.classified_cont[:3]  # 返回排序后的前三个轮廓
+        return self.classified_cont[0:3]  # 返回排序后的前三个轮廓
 
     def get_pic_info(self, cont):
         pics = []
@@ -73,17 +66,22 @@ class detect(object):
             rotated = cv2.warpAffine(self.image, M, (self.image.shape[0:2]))
             crop = rotated[center_p[1] - dst_h - 2:center_p[1] + dst_h + 2,
                    center_p[0] - dst_w - 2:center_p[0] + dst_w + 2]
+            # 区分shape0
             if i[1] == 0:
+                # 在白底上绘制轮廓
                 w_bg = cv2.cvtColor(self.image.copy(), cv2.COLOR_BGR2GRAY)
                 w_bg.fill(0)
                 cv2.drawContours(w_bg, [i[0]], -1, 255, 2)
+                # 旋转使轮廓水平
                 rotated_wbg = cv2.warpAffine(w_bg, M, (self.image.shape[0:2]))
                 crop_wbg = rotated_wbg[center_p[1] - dst_h - 5:center_p[1] + dst_h + 5,
-                       center_p[0] - dst_w - 5:center_p[0] + dst_w + 5]
+                           center_p[0] - dst_w - 5:center_p[0] + dst_w + 5]
+                # 检测轮廓，得到轮廓list（只有一个）
                 c, _ = cv2.findContours(crop_wbg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                sss = cv2.cvtColor(crop_wbg.copy(), cv2.COLOR_GRAY2BGR)
-                sss = cv2.drawContours(sss, [c[0]], -1, (0,255,0), 1)
-                cv2.imshow("www", sss)
+                # sss = cv2.cvtColor(crop_wbg.copy(), cv2.COLOR_GRAY2BGR)
+                # sss = cv2.drawContours(sss, [c[0]], -1, (0,255,0), 1)
+                # cv2.imshow("www", sss)
+                # 缺陷检测，检测缺口的位置，即距离凸包最远的点
                 hull = cv2.convexHull(c[0], returnPoints=False)
                 defects = cv2.convexityDefects(c[0], hull)
                 defects_list = defects.tolist()
@@ -92,11 +90,13 @@ class detect(object):
                 start = tuple(c[0][s][0])
                 end = tuple(c[0][e][0])
                 far = tuple(c[0][f][0])
-                print(far)
+                if (far[0] > 50 & far[1] > 30) | (far[0] < 50 & far[1] < 30):
+                    i[1] = 3
+                # print(far)
                 # distant =
-                cv2.line(crop_wbg, start, end, [0, 255, 0], 2)
-                cv2.circle(crop_wbg, far, 5, [0, 0, 255], -1)
-                cv2.imshow(f'img{i[2]}', crop_wbg)
+                # cv2.line(crop_wbg, start, end, [0, 255, 0], 2)
+                # cv2.circle(crop_wbg, far, 5, [0, 0, 255], -1)
+                # cv2.imshow(f'img{i[2]}', crop_wbg)
                 # i[1] = self.classify_shape0(i)
             infos.append([center_p, angle, i[1], i[2]])  # [中心点坐标，倾斜角度，类型，区别度]
             pics.append(crop)
