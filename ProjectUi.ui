@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>809</width>
-    <height>820</height>
+    <width>1013</width>
+    <height>956</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -24,8 +24,8 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>809</width>
-    <height>820</height>
+    <width>1013</width>
+    <height>956</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -67,7 +67,7 @@
            </size>
           </property>
           <property name="text">
-           <string>打开摄像头</string>
+           <string>启动检测</string>
           </property>
          </widget>
         </item>
@@ -89,7 +89,7 @@
            </size>
           </property>
           <property name="text">
-           <string>塑件识别</string>
+           <string>识别图像</string>
           </property>
          </widget>
         </item>
@@ -133,8 +133,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>640</width>
-            <height>480</height>
+            <width>881</width>
+            <height>616</height>
            </size>
           </property>
           <property name="font">
@@ -186,7 +186,7 @@
                </size>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>塑件1——图片</string>
               </property>
              </widget>
             </item>
@@ -199,7 +199,7 @@
                </size>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>塑件1——信息</string>
               </property>
              </widget>
             </item>
@@ -222,7 +222,7 @@
                </size>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>塑件2——图片</string>
               </property>
              </widget>
             </item>
@@ -241,7 +241,7 @@
                </size>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>塑件2——信息</string>
               </property>
              </widget>
             </item>
@@ -264,7 +264,7 @@
                </size>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>塑件3——图片</string>
               </property>
              </widget>
             </item>
@@ -277,7 +277,31 @@
                </size>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>塑件3——信息</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <widget class="QLabel" name="dict_4">
+              <property name="minimumSize">
+               <size>
+                <width>204</width>
+                <height>114</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>塑件4——图片</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="dict_4_info">
+              <property name="text">
+               <string>塑件4——信息</string>
               </property>
              </widget>
             </item>
@@ -296,7 +320,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>809</width>
+     <width>1013</width>
      <height>23</height>
     </rect>
    </property>

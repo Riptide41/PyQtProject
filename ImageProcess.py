@@ -9,23 +9,23 @@ class detect(object):
         blurred = cv2.GaussianBlur(image, (3, 3), 0)  # 高斯模糊，降噪
         gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)  # 转为灰度图片
         autosobel = cv2.Canny(gray, 150, 200, 3)  # sobel变化，边缘检测
-        contours, _ = cv2.findContours(autosobel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        detect_cont = self.filter_contours(contours)
-        self.classified_cont = self.classify_cont(detect_cont)
+        self.contours, _ = cv2.findContours(autosobel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        self.detect_cont = self.filter_contours()
+        self.classified_cont = self.classify_cont()
 
-    def filter_contours(self, con):  # 过滤得到疑似塑件的轮廓
+    def filter_contours(self):  # 过滤得到疑似塑件的轮廓
         filtered = []
-        square = [cv2.contourArea(x) for x in con]
+        square = [cv2.contourArea(x) for x in self.contours]
         for i in range(len(square)):
             if 3500 < square[i] < 7500:
-                filtered.append(con[i])
+                filtered.append(self.contours[i])
         return filtered
 
-    def classify_cont(self, cont):  # 分类识别出的轮廓
+    def classify_cont(self):  # 分类识别出的轮廓
         model_cont = np.load("./contdata.npy", allow_pickle=True)
         clsy_rlt = []  # 存放分类结果，格式[[轮廓，类型，区别度]...]
         for i, k in enumerate(model_cont):
-            for j in cont:
+            for j in self.detect_cont:
                 m = cv2.matchShapes(k, j, 1, 0.0)
                 if m < 0.035:
                     clsy_rlt.append([j, i, m])
@@ -42,7 +42,7 @@ class detect(object):
         return True, pic  # 返回识别成功，识别后的图像
 
     def get_three_cont(self):
-        return self.classified_cont[0:3]  # 返回排序后的前三个轮廓
+        return self.classified_cont[0:4]  # 返回排序后的前四个个轮廓
 
     def get_pic_info(self, cont):
         pics = []

@@ -44,12 +44,12 @@ class UiMainWindow(QMainWindow):
                 # self.show_camera()
                 self.timer_camera.start(30)  # 每30ms取一次图像
                 self.timer_getpic.start(2000)
-                self.ui.button_camera.setText(u'关闭摄像头')
+                self.ui.button_camera.setText(u'关闭检测')
         else:
             self.timer_camera.stop()
             self.cap.release()
             self.ui.camera.clear()
-            self.ui.button_camera.setText(u'打开摄像头')
+            self.ui.button_camera.setText(u'启动检测')
             self.ui.button_show_detected.setEnabled(False)
             self.ui.camera.setText("未开启")
 
@@ -71,20 +71,20 @@ class UiMainWindow(QMainWindow):
         else:
             show_image = self.image
         if self.detected:
-            three_pic_label = [self.ui.dict_1, self.ui.dict_2, self.ui.dict_3]     # 把三个label放进list便于遍历
-            three_info_label = [self.ui.dict_1_info, self.ui.dict_2_info, self.ui.dict_3_info]
-            for i in range(0, 3):
-                dict_pic = cv2.resize(self.result_pics[i], (204, 114))
+            three_pic_label = [self.ui.dict_1, self.ui.dict_2, self.ui.dict_3, self.ui.dict_4]     # 把三个label放进list便于遍历
+            three_info_label = [self.ui.dict_1_info, self.ui.dict_2_info, self.ui.dict_3_info, self.ui.dict_4_info]
+            for i, j in enumerate(self.result_pics):
+                dict_pic = cv2.resize(j, (204, 114))
                 cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
                 show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0], QtGui.QImage.Format_RGB888)
                 three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
-            for i in range(0, 3):
-                three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i][0][1]})\n"
+            for i in range(0, 4):
+                three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i-1][0][1]})\n"
                                             f"angle:{self.result_infos[i][1]}\n"
                                             f"shape type:{self.result_infos[i][2]}\n"
                                             f"distinction:{self.result_infos[i][3]}")
 
-        show = cv2.resize(show_image, (640, 480))
+        show = cv2.resize(show_image, (800, 600), 0, 0, cv2.INTER_LINEAR)
         show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
         self.ui.camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
@@ -92,7 +92,7 @@ class UiMainWindow(QMainWindow):
     def show_detected(self):
         if self.flag_show_detected:
             self.flag_show_detected = 0
-            self.ui.button_show_detected.setText("已识别图像")
+            self.ui.button_show_detected.setText("识别图像")
         else:
             self.flag_show_detected = 1
             self.ui.button_show_detected.setText("未识别图像")
