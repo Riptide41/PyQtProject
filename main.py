@@ -14,7 +14,7 @@ class UiMainWindow(QMainWindow):
         super(UiMainWindow, self).__init__(parent)
         self.ui = ProjectUi.Ui_MainWindow()
         self.ui.setupUi(self)
-        self.setWindowIcon(QtGui.QIcon("./Icon.jpg"))
+        self.setWindowIcon(QtGui.QIcon("./ICON/Icon.jpg"))
         self.timer_camera = QtCore.QTimer()    # 计时器用来固定时长取帧
         self.timer_get_pic = QtCore.QTimer()    # 计时器用来固定时长取识别的图片
         self.cap = cv2.VideoCapture()
