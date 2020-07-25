@@ -1,8 +1,12 @@
-import sys, cv2
+import cv2
+import sys
+
+from PyQt5 import QtGui, QtWidgets, QtCore, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5 import QtGui, QtWidgets, QtCore
-import ProjectUi
+
 import ImageProcess
+import ProjectUi
+from StackPage import ModifyBarPage, PicInfoPage
 
 
 class UiMainWindow(QMainWindow):
@@ -10,24 +14,63 @@ class UiMainWindow(QMainWindow):
         super(UiMainWindow, self).__init__(parent)
         self.ui = ProjectUi.Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setWindowIcon(QtGui.QIcon("./Icon.jpg"))
         self.timer_camera = QtCore.QTimer()    # 计时器用来固定时长取帧
-        self.timer_getpic = QtCore.QTimer()    # 计时器用来固定时长取识别的图片
+        self.timer_get_pic = QtCore.QTimer()    # 计时器用来固定时长取识别的图片
         self.cap = cv2.VideoCapture()
         self.CAM_NUM = 0
-        self.slot_init()
         self.flag_show_detected = 0
-        self.detected = 0    # 是否识别完毕
+        self.detected_flag = 0    # 是否识别完毕
         self.image = None    # 读取到的帧
         self.detected_pic = None    # 识别后的图片
         self.result_pics = None    # 识别到的每个单塑件图片list
         self.result_infos = None    # 识别到的每个单塑件信息list [中心点坐标，倾斜角度，类型，区别度]
+        self.detect_min_square = 3500
+        self.detect_max_square = 7500
+        # self.child_window = ChildWindow()
+        self.display_page_flag = 0
+
+        self.switch_display_frame = Qt.QStackedLayout(self.ui.frame)
+        self.modify_bar_page = ModifyBarPage(self.detect_min_square, self.detect_max_square)
+        self.pic_info_page = PicInfoPage()
+        self.switch_display_frame.addWidget(self.pic_info_page)
+        self.switch_display_frame.addWidget(self.modify_bar_page)
+        self.switch_display_frame.setCurrentIndex(self.display_page_flag)
+
+        self.slot_init()
 
     def slot_init(self):
         self.ui.button_camera.clicked.connect(self.button_display_camera_click)
         self.timer_camera.timeout.connect(self.show_camera)
-        self.timer_getpic.timeout.connect(self.process_pic)
+        self.timer_get_pic.timeout.connect(self.process_pic)
         self.ui.button_show_detected.clicked.connect(self.show_detected)
         self.ui.button_exit.clicked.connect(self.close)
+        self.ui.button_modify.clicked.connect(self.switch_content)
+
+        self.modify_bar_page.ui.low_limit_slider.valueChanged.connect(self.low_limit_slider_change)
+        self.modify_bar_page.ui.high_limit_slider.valueChanged.connect(self.high_limit_slide_change)
+
+    def low_limit_slider_change(self):
+        slider = self.modify_bar_page.ui.low_limit_slider
+        self.detect_min_square = slider.value()
+        self.modify_bar_page.ui.low_limit_value.setText(str(slider.value()))
+        self.modify_bar_page.ui.high_limit_slider.setMinimum(slider.value())
+
+    def high_limit_slide_change(self):
+        slider = self.modify_bar_page.ui.high_limit_slider
+        self.detect_max_square = slider.value()
+        self.modify_bar_page.ui.high_limit_value.setText(str(slider.value()))
+        self.modify_bar_page.ui.low_limit_slider.setMaximum(slider.value())
+
+    def switch_content(self):
+        if self.display_page_flag:
+            self.display_page_flag = 0
+            self.switch_display_frame.setCurrentIndex(self.display_page_flag)
+            self.ui.button_modify.setText(u"更改面积")
+        else:
+            self.display_page_flag = 1
+            self.switch_display_frame.setCurrentIndex(self.display_page_flag)
+            self.ui.button_modify.setText(u"检测结果")
 
     def button_display_camera_click(self):
         if not self.timer_camera.isActive():
@@ -43,7 +86,7 @@ class UiMainWindow(QMainWindow):
             else:
                 # self.show_camera()
                 self.timer_camera.start(30)  # 每30ms取一次图像
-                self.timer_getpic.start(2000)
+                self.timer_get_pic.start(2000)
                 self.ui.button_camera.setText(u'关闭检测')
         else:
             self.timer_camera.stop()
@@ -58,10 +101,10 @@ class UiMainWindow(QMainWindow):
 
         # ***************测试使用**********************
         if self.image is None:
-            self.cap.open("./Object.avi")
+            self.cap.open("./test.mp4")
             flag, self.image = self.cap.read()
         # 识别完后允许点击显示识别后按钮
-        if self.detected:
+        if self.detected_flag:
             self.ui.button_show_detected.setEnabled(True)  # 允许点击识别按钮
         else:
             self.ui.button_show_detected.setEnabled(False)
@@ -70,21 +113,29 @@ class UiMainWindow(QMainWindow):
             show_image = self.detected_pic
         else:
             show_image = self.image
-        if self.detected:
-            three_pic_label = [self.ui.dict_1, self.ui.dict_2, self.ui.dict_3, self.ui.dict_4]     # 把三个label放进list便于遍历
-            three_info_label = [self.ui.dict_1_info, self.ui.dict_2_info, self.ui.dict_3_info, self.ui.dict_4_info]
+        if self.detected_flag:
+            three_pic_label = [self.pic_info_page.ui.dict_1, self.pic_info_page.ui.dict_2, self.pic_info_page.ui.dict_3, self.pic_info_page.ui.dict_4]     # 把三个label放进list便于遍历
+            three_info_label = [self.pic_info_page.ui.dict_1_info, self.pic_info_page.ui.dict_2_info, self.pic_info_page.ui.dict_3_info, self.pic_info_page.ui.dict_4_info]
             for i, j in enumerate(self.result_pics):
                 dict_pic = cv2.resize(j, (204, 114))
                 cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
                 show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0], QtGui.QImage.Format_RGB888)
                 three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
-            for i in range(0, 4):
-                three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i-1][0][1]})\n"
-                                            f"angle:{self.result_infos[i][1]}\n"
-                                            f"shape type:{self.result_infos[i][2]}\n"
-                                            f"distinction:{self.result_infos[i][3]}")
+            for j, i in enumerate(self.result_infos):
+                three_info_label[j].setText(f"position:({i[0][0]}, {i[0][1]})\n"
+                                            f"angle:{i[1]}\n"
+                                            f"shape type:{i[2]}\n"
+                                            f"distinction:{i[3]}")
+            # for i in range(0, 4):
+            #     three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i-1][0][1]})\n"
+            #                                 f"angle:{self.result_infos[i][1]}\n"
+            #                                 f"shape type:{self.result_infos[i][2]}\n"
+            #                                 f"distinction:{self.result_infos[i][3]}")
 
-        show = cv2.resize(show_image, (800, 600), 0, 0, cv2.INTER_LINEAR)
+        show = cv2.resize(show_image, (640, 480), 0, 0, cv2.INTER_LINEAR)
+        # **************测试使用************************
+        # show = show[140:740, 200:1000]
+
         show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
         self.ui.camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
@@ -98,22 +149,20 @@ class UiMainWindow(QMainWindow):
             self.ui.button_show_detected.setText("未识别图像")
 
     def process_pic(self):
-        ip = ImageProcess.detect(self.image)
-        cont = ip.get_three_cont()
-        self.result_pics, self.result_infos = ip.get_pic_info(cont)
-        self.detected, self.detected_pic = ip.get_classified_pic()
-        # self.detected = 1
+        ip = ImageProcess.Detect(self.image, self.detect_min_square, self.detect_max_square)
+        self.result_pics, self.result_infos = ip.get_four_pic_info()
+        self.detected_flag, self.detected_pic = ip.get_classified_pic()
 
     def closeEvent(self, event):
         ok = QtWidgets.QPushButton()
-        cacel = QtWidgets.QPushButton()
+        cancel = QtWidgets.QPushButton()
 
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, u"关闭", u"是否关闭！")
 
         msg.addButton(ok, QtWidgets.QMessageBox.ActionRole)
-        msg.addButton(cacel, QtWidgets.QMessageBox.RejectRole)
+        msg.addButton(cancel, QtWidgets.QMessageBox.RejectRole)
         ok.setText(u'确定')
-        cacel.setText(u'取消')
+        cancel.setText(u'取消')
         if msg.exec_() == QtWidgets.QMessageBox.RejectRole:
             event.ignore()
         else:
@@ -122,6 +171,18 @@ class UiMainWindow(QMainWindow):
             if self.timer_camera.isActive():
                 self.timer_camera.stop()
             event.accept()
+            # sys.exit(0)    # 关闭主窗口时也关闭子窗口
+
+
+# class ChildWindow(QtWidgets.QWidget):
+#     def __init__(self):
+#         super(QtWidgets.QWidget, self).__init__()
+#         ui = ModifyUi.Ui_widget()
+#         ui.setupUi(self)
+#
+#     def show_window(self):
+#         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+#         self.show()
 
 
 if __name__ == '__main__':
