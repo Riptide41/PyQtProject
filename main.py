@@ -3,6 +3,7 @@ import sys
 
 from PyQt5 import QtGui, QtWidgets, QtCore, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
+import time
 
 import ImageProcess
 import ProjectUi
@@ -17,6 +18,7 @@ class UiMainWindow(QMainWindow):
         self.setWindowIcon(QtGui.QIcon("./ICON/Icon.jpg"))
         self.timer_camera = QtCore.QTimer()    # 计时器用来固定时长取帧
         self.timer_get_pic = QtCore.QTimer()    # 计时器用来固定时长取识别的图片
+        self.timer_save_origin_pic = QtCore.QTimer()     # 计时器用来定时保存图片
         self.cap = cv2.VideoCapture()
         self.CAM_NUM = 0
         self.flag_show_detected = 0
@@ -43,6 +45,7 @@ class UiMainWindow(QMainWindow):
         self.ui.button_camera.clicked.connect(self.button_display_camera_click)
         self.timer_camera.timeout.connect(self.show_camera)
         self.timer_get_pic.timeout.connect(self.process_pic)
+        self.timer_save_origin_pic.timeout.connect(self.save_pic)
         self.ui.button_show_detected.clicked.connect(self.show_detected)
         self.ui.button_exit.clicked.connect(self.close)
         self.ui.button_modify.clicked.connect(self.switch_content)
@@ -74,10 +77,10 @@ class UiMainWindow(QMainWindow):
 
     def button_display_camera_click(self):
         if not self.timer_camera.isActive():
-            # flag = self.cap.open(self.CAM_NUM)
+            flag = self.cap.open(self.CAM_NUM)
 
             # ***************测试使用**********************
-            flag = self.cap.open("./Object.avi")
+            # flag = self.cap.open("./Object.avi")
 
             if not flag:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
@@ -87,6 +90,7 @@ class UiMainWindow(QMainWindow):
                 # self.show_camera()
                 self.timer_camera.start(30)  # 每30ms取一次图像
                 self.timer_get_pic.start(2000)
+                self.timer_save_origin_pic.start(1000)    # 每1s保存一次图像
                 self.ui.button_camera.setText(u'关闭检测')
         else:
             self.timer_camera.stop()
@@ -96,13 +100,18 @@ class UiMainWindow(QMainWindow):
             self.ui.button_show_detected.setEnabled(False)
             self.ui.camera.setText("未开启")
 
+    def save_pic(self):
+        filename = time.time()
+        cv2.imwrite(f"./Origin_Pic/{filename}.jpg", self.image)
+        print("save success!")
+
     def show_camera(self):
         flag, self.image = self.cap.read()
 
         # ***************测试使用**********************
-        if self.image is None:
-            self.cap.open("./test.mp4")
-            flag, self.image = self.cap.read()
+        # if self.image is None:
+        #     self.cap.open("./Object.avi")
+        #     flag, self.image = self.cap.read()
         # 识别完后允许点击显示识别后按钮
         if self.detected_flag:
             self.ui.button_show_detected.setEnabled(True)  # 允许点击识别按钮
