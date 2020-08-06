@@ -27,10 +27,11 @@ class UiMainWindow(QMainWindow):
         self.detected_pic = None    # 识别后的图片
         self.result_pics = None    # 识别到的每个单塑件图片list
         self.result_infos = None    # 识别到的每个单塑件信息list [中心点坐标，倾斜角度，类型，区别度]
-        self.detect_min_square = 3500
-        self.detect_max_square = 7500
+        self.detect_min_square = 200
+        self.detect_max_square = 45000
         # self.child_window = ChildWindow()
         self.display_page_flag = 0
+        self.updated_result_flag = False
 
         self.switch_display_frame = Qt.QStackedLayout(self.ui.frame)
         self.modify_bar_page = ModifyBarPage(self.detect_min_square, self.detect_max_square)
@@ -77,10 +78,10 @@ class UiMainWindow(QMainWindow):
 
     def button_display_camera_click(self):
         if not self.timer_camera.isActive():
-            flag = self.cap.open(self.CAM_NUM)
+            # flag = self.cap.open(self.CAM_NUM)
 
             # ***************测试使用**********************
-            # flag = self.cap.open("./Object.avi")
+            flag = self.cap.open("./Object.mp4")
 
             if not flag:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
@@ -101,17 +102,22 @@ class UiMainWindow(QMainWindow):
             self.ui.camera.setText("未开启")
 
     def save_pic(self):
-        filename = time.time()
-        cv2.imwrite(f"./Origin_Pic/{filename}.jpg", self.image)
-        print("save success!")
+        pass
+        # filename = time.time()
+        # cv2.imwrite(f"./Origin_Pic/{filename}.jpg", self.image)
+        # print("save success!")
 
     def show_camera(self):
         flag, self.image = self.cap.read()
 
+    # self.image = cv2.resize(self.image, (640, 480), 0, 0, cv2.INTER_LINEAR)
+
         # ***************测试使用**********************
-        # if self.image is None:
-        #     self.cap.open("./Object.avi")
-        #     flag, self.image = self.cap.read()
+        if flag is False:
+            self.cap.open("./Object.mp4")
+            flag, self.image = self.cap.read()
+            # self.image = cv2.imread("./test.jpg")
+        self.image = cv2.resize(self.image, (1623, 1080), 0, 0, cv2.INTER_LINEAR)
         # 识别完后允许点击显示识别后按钮
         if self.detected_flag:
             self.ui.button_show_detected.setEnabled(True)  # 允许点击识别按钮
@@ -122,19 +128,27 @@ class UiMainWindow(QMainWindow):
             show_image = self.detected_pic
         else:
             show_image = self.image
-        if self.detected_flag:
+
+        # 更新结果显示区域
+        if self.updated_result_flag:
             three_pic_label = [self.pic_info_page.ui.dict_1, self.pic_info_page.ui.dict_2, self.pic_info_page.ui.dict_3, self.pic_info_page.ui.dict_4]     # 把三个label放进list便于遍历
             three_info_label = [self.pic_info_page.ui.dict_1_info, self.pic_info_page.ui.dict_2_info, self.pic_info_page.ui.dict_3_info, self.pic_info_page.ui.dict_4_info]
-            for i, j in enumerate(self.result_pics):
-                dict_pic = cv2.resize(j, (204, 114))
-                cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
-                show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0], QtGui.QImage.Format_RGB888)
-                three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
-            for j, i in enumerate(self.result_infos):
-                three_info_label[j].setText(f"position:({i[0][0]}, {i[0][1]})\n"
-                                            f"angle:{i[1]}\n"
-                                            f"shape type:{i[2]}\n"
-                                            f"distinction:{i[3]}")
+            try:
+                for i, j in enumerate(self.result_pics):
+                    self.j = j
+                    dict_pic = cv2.resize(j, (204, 114))
+                    cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
+                    show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0], QtGui.QImage.Format_RGB888)
+                    three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
+                for j, i in enumerate(self.result_infos):
+                    three_info_label[j].setText(f"position:({i[0][0]}, {i[0][1]})\n"
+                                                f"angle:{i[1]}\n"
+                                                f"shape type:{i[2]}\n"
+                                                f"distinction:{i[3]}")
+                self.updated_result_flag = False
+
+            except Exception as e:
+                print(str(e))
             # for i in range(0, 4):
             #     three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i-1][0][1]})\n"
             #                                 f"angle:{self.result_infos[i][1]}\n"
@@ -159,7 +173,7 @@ class UiMainWindow(QMainWindow):
 
     def process_pic(self):
         ip = ImageProcess.Detect(self.image, self.detect_min_square, self.detect_max_square)
-        self.result_pics, self.result_infos = ip.get_four_pic_info()
+        self.updated_result_flag, self.result_pics, self.result_infos = ip.get_four_pic_info()
         self.detected_flag, self.detected_pic = ip.get_classified_pic()
 
     def closeEvent(self, event):

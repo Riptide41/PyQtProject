@@ -8,15 +8,23 @@ class Detect(object):
         self.image = image
         # blurred = cv2.GaussianBlur(image, (5, 5), 0)  # 高斯模糊，降噪
 
-        kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
-        blurred = cv2.filter2D(image, -1, kernel=kernel)
+        # kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
+        # blurred = cv2.filter2D(image, -1, kernel=kernel)
         # cv2.imshow("ruihua", blurred)
         # blurred = cv2.bilateralFilter(blurred, 0, 100, 15)
-        blurred = cv2.GaussianBlur(blurred, (5, 5), 0)  # 高斯模糊，降噪
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # 转为灰度图片
+        blurred = cv2.GaussianBlur(gray, (9, 9), 0)  # 高斯模糊，降噪
 
-        gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)  # 转为灰度图片
-        autosobel = cv2.Canny(gray, 150, 200, 3)  # sobel变化，边缘检测
-        self.contours, _ = cv2.findContours(autosobel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        ret, binary = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+        # cv2.imshow("binary pic", binary)
+        # autosobel = cv2.Canny(blurred, 150, 200, 3)  # sobel变化，边缘检测
+        # cv2.imshow(" pic", autosobel)
+
+        cv2.imshow("binary pic", binary)
+
+        self.contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         self.detect_min_square = min_square
         self.detect_max_square = max_square
@@ -27,11 +35,18 @@ class Detect(object):
         filtered = []
         square = [cv2.contourArea(x) for x in self.contours]
         for i in range(len(square)):
-            if self.detect_min_square < square[i] < self.detect_max_square:
-                print(square[i])
+            if self.detect_min_square < self.contours[i].size < self.detect_max_square:
+                print(self.contours[i].size)
+                print("area:", cv2.contourArea(self.contours[i]))
                 filtered.append(self.contours[i])
-        # # ******************测试使用***********************
-        # test = cv2.drawContours(self.image.copy(), filtered, -1, 255, 2)
+
+        # ******************测试使用***********************
+        # test = cv2.drawContours(self.image.copy(), [filtered[16]], -1, 255, 5)
+        # print("test size:", filtered[3].size)
+        # model_cont = np.load("./contdata.npy", allow_pickle=True)
+        # model_cont[2] = filtered[13]
+        # np.save("./contdata.npy", model_cont)
+
         # cv2.imshow("test", test)
         return filtered
 
@@ -43,6 +58,7 @@ class Detect(object):
                 m = cv2.matchShapes(k, j, 1, 0.0)
                 if m < 0.035:
                     clsy_rlt.append([j, i, m])
+                    print("detected aread:", j.size)
         clsy_rlt.sort(key=lambda x: x[2])
         return clsy_rlt  # 使用区分度排序
 
@@ -71,7 +87,8 @@ class Detect(object):
             pics.append(cv2.imread("./Faildetect.png"))
             infos.append([("NaN", "NaN"), "NaN", "NaN", "NaN"])
             cont_num += 1
-        return pics, infos  # 返回排序后的前四个个轮廓
+        print("cont_num:", cont_num)
+        return True, pics, infos  # 返回排序后的前四个个轮廓
 
     def get_pic_info(self, cont):
         rect = cv2.minAreaRect(cont[0])
@@ -87,11 +104,17 @@ class Detect(object):
             dst_w, dst_h = dst_h, dst_w
             angle += 90
         M = cv2.getRotationMatrix2D(center_p, angle, 1.0)  # 获取旋转参数
-
-        rotated = cv2.warpAffine(self.image, M, (self.image.shape[0:2]))
+        print("sssss", self.image.shape[0:2])
+        rotated = cv2.warpAffine(self.image, M, (1623,1080))
         crop = rotated[center_p[1] - dst_h - 2:center_p[1] + dst_h + 2,
                center_p[0] - dst_w - 2:center_p[0] + dst_w + 2]
-        # 区分shape0
+        # 当塑件处于边缘时，截取的图片size为0，抛弃
+        if crop.size is 0:
+            return False, crop, [center_p, angle, cont[1], cont[2]]
+        # if crop.empty():
+        #     print("error occur")
+
+        # 区分shape2
         if cont[1] == 2:
             # 在白底上绘制轮廓
             w_bg = cv2.cvtColor(self.image.copy(), cv2.COLOR_BGR2GRAY)
@@ -112,6 +135,7 @@ class Detect(object):
                 hull = cv2.convexHull(c[0], returnPoints=False)
                 # print(c[0])
                 defects = cv2.convexityDefects(c[0], hull)
+                print(defects)
                 defects_list = defects.tolist()
                 defects_list.sort(key=lambda x: x[0][3], reverse=True)
                 s, e, f, d = defects_list[0][0]  # 得到的list中每项是[[x,y,z,k]]格式，所以需要0

@@ -69,7 +69,7 @@ class Ui_widget(object):
         self.high_limit_slider.setSizePolicy(sizePolicy)
         self.high_limit_slider.setMinimumSize(QtCore.QSize(662, 0))
         self.high_limit_slider.setMaximumSize(QtCore.QSize(662, 16777215))
-        self.high_limit_slider.setMaximum(20000)
+        self.high_limit_slider.setMaximum(50000)
         self.high_limit_slider.setOrientation(QtCore.Qt.Horizontal)
         self.high_limit_slider.setObjectName("high_limit_slider")
         self.verticalLayout.addWidget(self.high_limit_slider)
