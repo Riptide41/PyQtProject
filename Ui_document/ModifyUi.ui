@@ -40,7 +40,7 @@
        </font>
       </property>
       <property name="text">
-       <string>20000</string>
+       <string>200000</string>
       </property>
      </widget>
      <widget class="QLabel" name="min_low_limit">
@@ -162,7 +162,7 @@
           </size>
          </property>
          <property name="maximum">
-          <number>20000</number>
+          <number>500000</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
