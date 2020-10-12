@@ -1,5 +1,5 @@
 import cv2
-import sys
+import sys, os
 
 from PyQt5 import QtGui, QtWidgets, QtCore, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
@@ -27,8 +27,8 @@ class UiMainWindow(QMainWindow):
         self.detected_pic = None    # 识别后的图片
         self.result_pics = None    # 识别到的每个单塑件图片list
         self.result_infos = None    # 识别到的每个单塑件信息list [中心点坐标，倾斜角度，类型，区别度]
-        self.detect_min_square = 200
-        self.detect_max_square = 45000
+        self.detect_min_square = 36000
+        self.detect_max_square = 100000
         # self.child_window = ChildWindow()
         self.display_page_flag = 0
         self.updated_result_flag = False
@@ -39,8 +39,11 @@ class UiMainWindow(QMainWindow):
         self.switch_display_frame.addWidget(self.pic_info_page)
         self.switch_display_frame.addWidget(self.modify_bar_page)
         self.switch_display_frame.setCurrentIndex(self.display_page_flag)
+        # **********************
+        self.refresh_flag = 0
 
         self.slot_init()
+        self.detecter = ImageProcess.Detect()
 
     def slot_init(self):
         self.ui.button_camera.clicked.connect(self.button_display_camera_click)
@@ -83,12 +86,17 @@ class UiMainWindow(QMainWindow):
             # ***************测试使用**********************
             flag = self.cap.open("./Object.mp4")
 
+            # ##############################################
+            # list = os.listdir("C:/Users/WangTC/Documents/Basedcam2 Files/Picture")
+            # self.image = cv2.imread("C:/Users/WangTC/Documents/Basedcam2 Files/Picture" + '/' + list[0], 1)
+            # os.remove("C:/Users/WangTC/Documents/Basedcam2 Files/Picture" + '/' + list[0])
+
             if not flag:
                 QtWidgets.QMessageBox.warning(self, u"Warning", u"请检测相机与电脑是否连接正确",
                                               buttons=QtWidgets.QMessageBox.Ok,
                                               defaultButton=QtWidgets.QMessageBox.Ok)
             else:
-                # self.show_camera()
+                self.show_camera()
                 self.timer_camera.start(30)  # 每30ms取一次图像
                 self.timer_get_pic.start(2000)
                 self.timer_save_origin_pic.start(1000)    # 每1s保存一次图像
@@ -108,21 +116,30 @@ class UiMainWindow(QMainWindow):
         # print("save success!")
 
     def show_camera(self):
-        flag, self.image = self.cap.read()
+        # flag, self.image = self.cap.read()
 
-    # self.image = cv2.resize(self.image, (640, 480), 0, 0, cv2.INTER_LINEAR)
 
         # ***************测试使用**********************
-        if flag is False:
-            self.cap.open("./Object.mp4")
-            flag, self.image = self.cap.read()
-            # self.image = cv2.imread("./test.jpg")
-        self.image = cv2.resize(self.image, (1623, 1080), 0, 0, cv2.INTER_LINEAR)
+        # self.image = cv2.imread("./test.jpg")
+
+        # if flag is False:
+        #     self.cap.open("./Object.mp4")
+        #     flag, self.image = self.cap.read()
+
+        # ******************************************
+        list = os.listdir("C:/Users/WangTC/Documents/Basedcam2 Files/Picture")
+        if len(list):
+            time.sleep(0.5)
+            self.image = cv2.imread("C:/Users/WangTC/Documents/Basedcam2 Files/Picture" + '/' + list[0], 1)
+            os.remove("C:/Users/WangTC/Documents/Basedcam2 Files/Picture" + '/' + list[0])
+            self.refresh_flag = 1
+
+
+            self.image = cv2.resize(self.image, (1623, 1080), 0, 0, cv2.INTER_LINEAR)
         # 识别完后允许点击显示识别后按钮
-        if self.detected_flag:
+        if self.updated_result_flag:
             self.ui.button_show_detected.setEnabled(True)  # 允许点击识别按钮
-        else:
-            self.ui.button_show_detected.setEnabled(False)
+
 
         if self.flag_show_detected:
             show_image = self.detected_pic
@@ -131,24 +148,27 @@ class UiMainWindow(QMainWindow):
 
         # 更新结果显示区域
         if self.updated_result_flag:
-            three_pic_label = [self.pic_info_page.ui.dict_1, self.pic_info_page.ui.dict_2, self.pic_info_page.ui.dict_3, self.pic_info_page.ui.dict_4]     # 把三个label放进list便于遍历
-            three_info_label = [self.pic_info_page.ui.dict_1_info, self.pic_info_page.ui.dict_2_info, self.pic_info_page.ui.dict_3_info, self.pic_info_page.ui.dict_4_info]
-            try:
-                for i, j in enumerate(self.result_pics):
-                    self.j = j
-                    dict_pic = cv2.resize(j, (204, 114))
-                    cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
-                    show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0], QtGui.QImage.Format_RGB888)
-                    three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
-                for j, i in enumerate(self.result_infos):
-                    three_info_label[j].setText(f"position:({i[0][0]}, {i[0][1]})\n"
-                                                f"angle:{i[1]}\n"
-                                                f"shape type:{i[2]}\n"
-                                                f"distinction:{i[3]}")
-                self.updated_result_flag = False
+            three_pic_label = [self.pic_info_page.ui.dict_1, self.pic_info_page.ui.dict_2,
+                               self.pic_info_page.ui.dict_3, self.pic_info_page.ui.dict_4]     # 把三个label放进list便于遍历
+            three_info_label = [self.pic_info_page.ui.dict_1_info, self.pic_info_page.ui.dict_2_info,
+                                self.pic_info_page.ui.dict_3_info, self.pic_info_page.ui.dict_4_info]
+            # try:
+            for i, j in enumerate(self.result_pics):
+                # self.j = j
+                dict_pic = cv2.resize(j, (204, 114))
+                cv2.cvtColor(dict_pic, cv2.COLOR_BGR2RGB)
+                show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0],
+                                        QtGui.QImage.Format_RGB888)
+                three_pic_label[i].setPixmap(QtGui.QPixmap.fromImage(show_pic))
+            for j, i in enumerate(self.result_infos):
+                three_info_label[j].setText(f"position:({i[0][0]}, {i[0][1]})\n"
+                                            f"angle:{i[1]}\n"
+                                            f"shape type:{i[2]}\n"
+                                            f"distinction:{i[3]}")
+            self.updated_result_flag = False
 
-            except Exception as e:
-                print(str(e))
+            # except Exception as e:
+            #     print("LABEL ERROR:", str(e))
             # for i in range(0, 4):
             #     three_info_label[i].setText(f"position:({self.result_infos[i][0][0]}, {self.result_infos[i-1][0][1]})\n"
             #                                 f"angle:{self.result_infos[i][1]}\n"
@@ -172,16 +192,23 @@ class UiMainWindow(QMainWindow):
             self.ui.button_show_detected.setText("未识别图像")
 
     def process_pic(self):
-        ip = ImageProcess.Detect(self.image, self.detect_min_square, self.detect_max_square)
-        self.updated_result_flag, self.result_pics, self.result_infos = ip.get_four_pic_info()
-        self.detected_flag, self.detected_pic = ip.get_classified_pic()
+        self.detecter.image_process(self.image, self.detect_min_square, self.detect_max_square)
+        self.updated_result_flag, self.result_pics, self.result_infos, self.detected_pic = self.detecter.get_four_pic_info()
+        # ********************************
+        # if self.refresh_flag:
+        #     for i in self.ip.all_pics:
+        #         dict_pic = cv2.resize(i, (204, 114))
+        #         dict_pic = cv2.cvtColor(dict_pic, cv2.COLOR_BGR2GRAY)
+        #         show_pic = QtGui.QImage(dict_pic.data, dict_pic.shape[1], dict_pic.shape[0],
+        #                                 QtGui.QImage.Format_RGB888)
+        #         cv2.imshow("ssssda", dict_pic)
+        #         cv2.imwrite(f"./conts/{time.time()}.jpg", dict_pic)
+        #     self.refresh_flag = 0
 
     def closeEvent(self, event):
         ok = QtWidgets.QPushButton()
         cancel = QtWidgets.QPushButton()
-
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, u"关闭", u"是否关闭！")
-
         msg.addButton(ok, QtWidgets.QMessageBox.ActionRole)
         msg.addButton(cancel, QtWidgets.QMessageBox.RejectRole)
         ok.setText(u'确定')
