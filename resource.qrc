@@ -1,0 +1,12 @@
+<RCC>
+  <qresource prefix="icon">
+    <file>window_icon/设置w.svg</file>
+    <file>window_icon/切换1.svg</file>
+    <file>window_icon/切换0.svg</file>
+    <file>window_icon/close.svg</file>
+    <file>window_icon/camera.svg</file>
+    <file>window_icon/设置1.svg</file>
+    <file>window_icon/切换开.svg</file>
+    <file>window_icon/camera.svg</file>
+  </qresource>
+</RCC>

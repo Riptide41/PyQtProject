@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'ModifyUi.ui'
+# Form implementation generated from reading ui file 'ModifyUi_Horizon.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.1
 #
